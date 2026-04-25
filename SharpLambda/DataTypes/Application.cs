@@ -8,4 +8,9 @@ public class Application
     {
         Terms = terms;
     }
+
+    public override string ToString()
+    {
+        return $"({string.Join(' ', Terms)})";
+    }
 }

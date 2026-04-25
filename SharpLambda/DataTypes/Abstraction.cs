@@ -1,3 +1,4 @@
+using SharpLambda.Factories;
 using SharpLambda.Utils;
 
 namespace SharpLambda.DataTypes;
@@ -26,7 +27,51 @@ public class Abstraction
         Body = newAbstraction;
         return true;
     }
-    
+
+    public bool BetaReduce(Term term)
+    {
+        var param = Parameters.FirstOrDefault();
+        if (param == null)
+        {
+            return false;
+        }
+
+        Parameters = Parameters.Cdr();
+        Body = BetaReduceRec(Body, term, param);
+        return true;
+    }
+
+    private Term BetaReduceRec(Term term, Term replacement, string varName)
+    {
+        if (term.IsVariable())
+        {
+            if (term.Variable.Name == varName)
+            {
+                return replacement;
+            }
+
+            return term;
+        }
+
+        if (term.IsApplication())
+        {
+            var list = new List<Term>();
+            foreach (var item in term.Application.Terms)
+            {
+                list.Add(BetaReduceRec(item, replacement, varName));
+            }
+
+            return TermFactory.Application(list);
+        }
+
+        if (term.IsAbstraction())
+        {
+            term.Abstraction.Body = BetaReduceRec(term.Abstraction.Body, replacement, varName);
+        }
+
+        return term;
+    }
+
     // přejmenuju parametr a pak rekurzivně přejmenuju všechny proměnné v těle
     // počítám s tím že lambdy vevnitř nemají konflikty parametrů, to jsem řešil v konstruktoru
     public bool AlphaReduce(string name)
@@ -58,6 +103,7 @@ public class Abstraction
             {
                 AlphaReduceRec(item, name, newName);
             }
+
             return;
         }
 
@@ -75,6 +121,7 @@ public class Abstraction
             {
                 ResolveParameterConflict(item, parameters);
             }
+
             return;
         }
 
@@ -93,7 +140,7 @@ public class Abstraction
             }
         }
     }
-    
+
     public override string ToString()
     {
         return $"(λ ({string.Join(' ', Parameters)}) {Body})";
