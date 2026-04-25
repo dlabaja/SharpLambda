@@ -47,8 +47,18 @@ public static class TermFactory
         return new Term(new External(content, typeof(string)));
     }
 
-    public static Term Primitive(Primitive primitive)
+    public static Term Function(ExternalFunction externalFunction)
     {
-        return new Term(new External(primitive, typeof(Primitive)));
+        return new Term(new External(externalFunction, typeof(ExternalFunction)));
+    }
+
+    public static Term True()
+    {
+        return new Term(new Abstraction(["a", "b"], Variable("a")));
+    }
+    
+    public static Term False()
+    {
+        return new Term(new Abstraction(["a", "b"], Variable("b")));
     }
 }

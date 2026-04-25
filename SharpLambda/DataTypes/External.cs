@@ -29,9 +29,9 @@ public class External
         return Type == typeof(string);
     }
     
-    public bool IsPrimitive()
+    public bool IsFunction()
     {
-        return Type == typeof(Primitive);
+        return Type == typeof(ExternalFunction);
     }
     
     public long GetInt()
@@ -52,6 +52,15 @@ public class External
         return Convert.ChangeType(Value, Type);
     }
     
+    public double GetNumber()
+    {
+        if (!IsFloat() && !IsInt())
+        {
+            throw new ExternalTypeException(Type, typeof(double));
+        }
+        return Convert.ChangeType(Value, Type);
+    }
+    
     public string GetString()
     {
         if (!IsString())
@@ -61,11 +70,11 @@ public class External
         return Convert.ChangeType(Value, Type);
     }
     
-    public Primitive GetPrimitive()
+    public ExternalFunction GetFunction()
     {
-        if (!IsPrimitive())
+        if (!IsFunction())
         {
-            throw new ExternalTypeException(Type, typeof(Primitive));
+            throw new ExternalTypeException(Type, typeof(ExternalFunction));
         }
         return Convert.ChangeType(Value, Type);
     }

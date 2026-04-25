@@ -1,10 +1,10 @@
 namespace SharpLambda.DataTypes;
 
-public class Primitive
+public class ExternalFunction
 {
     public Func<Term, Term> Function { get; }
 
-    public Primitive(Func<Term, Term> function)
+    public ExternalFunction(Func<Term, Term> function)
     {
         Function = function;
     }
