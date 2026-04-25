@@ -6,7 +6,8 @@ public enum TermType
 {
     Abstraction,
     Application,
-    Variable
+    Variable,
+    External
 }
 
 public class Term
@@ -15,6 +16,7 @@ public class Term
     public Abstraction? Abstraction { get; }
     public Application? Application { get; }
     public Variable? Variable { get; }
+    public External? External { get; }
 
     public Term(Abstraction abstraction)
     {
@@ -32,6 +34,12 @@ public class Term
     {
         Type = TermType.Variable;
         Variable = variable;
+    }
+    
+    public Term(External external)
+    {
+        Type = TermType.External;
+        External = external;
     }
 
     [MemberNotNullWhen(true, nameof(Abstraction))]
@@ -51,6 +59,12 @@ public class Term
     {
         return Type == TermType.Variable;
     }
+    
+    [MemberNotNullWhen(true, nameof(External))]
+    public bool IsExternal()
+    {
+        return Type == TermType.External;
+    }
 
     public override string ToString()
     {
@@ -67,6 +81,11 @@ public class Term
         if (IsVariable())
         {
             return Variable.ToString();
+        }
+
+        if (IsExternal())
+        {
+            return External.ToString();
         }
 
         return "";
