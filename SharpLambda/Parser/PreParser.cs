@@ -7,6 +7,7 @@ public static class PreParser
 {
     private static string ExpressionToUpper(char[] expr)
     {
+        List<char> blacklist = ['λ'];
         char prev = '\0';
         var canProcess = true;
         for (int i = 0; i < expr.Length; i++)
@@ -50,6 +51,8 @@ public static class PreParser
             ExpressionToUpper(expr.Trim().ToCharArray()),
             context);
         var builder = new StringBuilder(new_exp);
+        builder.Replace("LAMBDA", "λ");
+        builder.Replace("Λ", "λ");
         builder.Replace('\n', ' ');
         builder.Replace('\t', ' ');
         return builder.ToString();

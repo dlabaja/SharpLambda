@@ -27,7 +27,7 @@ public static class TermFactory
     {
         if (string.IsNullOrWhiteSpace(name))
         {
-            throw new VariableNameNullException(nameof(Variable));
+            throw new VariableNameInvalidException(nameof(Variable), name);
         }
         return new Term(new Variable(name));
     }
