@@ -1,3 +1,5 @@
-﻿// See https://aka.ms/new-console-template for more information
+﻿using SharpLambda;
+using SharpLambda.DataTypes;
 
-Console.WriteLine("Hello, World!");
+var context = new Context();
+Console.WriteLine(Interpreter.Eval("ahoj", context));

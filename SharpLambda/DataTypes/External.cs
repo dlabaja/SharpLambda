@@ -79,7 +79,6 @@ public class External
 
         if (IsFloat() || IsInt())
         {
-            // desetinná tečka
             return Convert.ChangeType(Value, Type).ToString(CultureInfo.InvariantCulture) ?? "";
         }
         
