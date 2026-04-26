@@ -79,20 +79,43 @@ public static class Eval
 
         var arg = args.Car();
         var rest = args.Cdr();
-        if (arg.IsVariable() && head.Parameters[0] == arg.Variable.Name)
-        {
-            AlphaReduce(head, arg.Variable.Name);
-        }
+
+        TryAlphaReduce(TermFactory.Abstraction(head.Parameters, head.Body), arg);
 
         BetaReduce(head, arg);
 
-        var abstraction = TermFactory.Abstraction(head.Parameters, head.Body);
-        if (rest.Count != 0)
+        if (head.Parameters.Count == 0)
         {
-            return TermFactory.Application([abstraction, ..rest]);
+            if (rest.Count == 0)
+            {
+                return head.Body;
+            }
+
+            return TermFactory.Application([head.Body, ..rest]);
         }
 
-        return head.Parameters.Count == 0 ? head.Body : abstraction;
+        var abstraction = TermFactory.Abstraction(head.Parameters, head.Body);
+        return rest.Count == 0 
+            ? abstraction
+            : TermFactory.Application([abstraction, ..rest]);
+    }
+
+    private static void TryAlphaReduce(Term head, Term arg)
+    {
+        // u arg potřebuju freeVars, u head paramNames
+        var freeVarNames = new List<string>();
+        var paramNames = new Dictionary<string, Abstraction>();
+        CollectVariableNames(head, [], paramNames);
+        CollectVariableNames(arg, freeVarNames, []);
+        
+        // pokud je některá z volných proměnných v seznamu parametrů, musím ji zredukovat
+        foreach (var freeVarName in freeVarNames)
+        {
+            if (paramNames.TryGetValue(freeVarName, out var abstraction))
+            {
+                AlphaReduce(abstraction, freeVarName);       
+            }
+        }
     }
     
     // přejmenuju parametr a pak rekurzivně přejmenuju všechny proměnný v těle
@@ -136,6 +159,36 @@ public static class Eval
                 return;
             }
             AlphaReduceRec(term.Abstraction.Body, name, newName);
+        }
+    }
+
+    private static void CollectVariableNames(Term term, List<string> freeVariableNames, Dictionary<string, Abstraction> paramNames)
+    {
+        if (term.IsVariable())
+        {
+            if (freeVariableNames.Contains(term.Variable.Name) || paramNames.ContainsKey(term.Variable.Name))
+            {
+                return;
+            }
+            freeVariableNames.Add(term.Variable.Name);
+        }
+        
+        if (term.IsApplication())
+        {
+            ListUtils.Mapcar(term.Application.Terms, x =>
+            {
+                CollectVariableNames(x, freeVariableNames, paramNames);
+                return x;
+            });
+        }
+
+        if (term.IsAbstraction())
+        {
+            foreach (var parameter in term.Abstraction.Parameters)
+            {
+                paramNames.TryAdd(parameter, term.Abstraction);
+            }
+            CollectVariableNames(term.Abstraction.Body, freeVariableNames, paramNames);
         }
     }
     
