@@ -1,4 +1,5 @@
 using SharpLambda.DataTypes;
+using SharpLambda.Defined;
 using SharpLambda.Factories;
 using System.Globalization;
 
@@ -20,6 +21,10 @@ public static class AtomParser
         else if (expr.StartsWith('"') && expr.EndsWith('"'))
         {
             atom = TermFactory.String(expr);
+        }
+        else if (ExternalFunctions.Functions.TryGetValue(expr, out ExternalFunction? value))
+        {
+            atom = TermFactory.Function(value);
         }
         else
         {
