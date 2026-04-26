@@ -12,133 +12,22 @@ public class Abstraction
     {
         Parameters = parameters;
         Body = body;
-        ResolveParameterConflict(Body, Parameters);
     }
 
-    public bool Curry()
+    public string? PopFirstParam()
     {
-        if (Parameters.Count < 2)
+        if (Parameters.Count == 0)
         {
-            return false;
+            return null;
         }
-
-        var newAbstraction = new Term(new Abstraction(Parameters.Cdr(), Body));
-        Parameters = [Parameters.Car()];
-        Body = newAbstraction;
-        return true;
-    }
-
-    public bool BetaReduce(Term term)
-    {
-        var param = Parameters.FirstOrDefault();
-        if (param == null)
-        {
-            return false;
-        }
-
+        var param = Parameters.Car();
         Parameters = Parameters.Cdr();
-        Body = BetaReduceRec(Body, term, param);
-        return true;
+        return param;
     }
 
-    private Term BetaReduceRec(Term term, Term replacement, string varName)
+    public void ReplaceBody(Term body)
     {
-        if (term.IsVariable())
-        {
-            if (term.Variable.Name == varName)
-            {
-                return replacement;
-            }
-
-            return term;
-        }
-
-        if (term.IsApplication())
-        {
-            var list = new List<Term>();
-            foreach (var item in term.Application.Terms)
-            {
-                list.Add(BetaReduceRec(item, replacement, varName));
-            }
-
-            return TermFactory.Application(list);
-        }
-
-        if (term.IsAbstraction())
-        {
-            term.Abstraction.Body = BetaReduceRec(term.Abstraction.Body, replacement, varName);
-        }
-
-        return term;
-    }
-
-    // přejmenuju parametr a pak rekurzivně přejmenuju všechny proměnné v těle
-    // počítám s tím že lambdy vevnitř nemají konflikty parametrů, to jsem řešil v konstruktoru
-    public bool AlphaReduce(string name)
-    {
-        var paramIndex = Parameters.IndexOf(name);
-        if (paramIndex == -1)
-        {
-            return false;
-        }
-
-        var newName = NameGenerator.GetName();
-        Parameters[paramIndex] = newName;
-        AlphaReduceRec(Body, name, newName);
-        return true;
-    }
-
-    // rekurze my beloved
-    private void AlphaReduceRec(Term term, string name, string newName)
-    {
-        if (term.IsVariable() && term.Variable.Name == name)
-        {
-            term.Variable.Rename(newName);
-            return;
-        }
-
-        if (term.IsApplication())
-        {
-            foreach (var item in term.Application.Terms)
-            {
-                AlphaReduceRec(item, name, newName);
-            }
-
-            return;
-        }
-
-        if (term.IsAbstraction())
-        {
-            AlphaReduceRec(term.Abstraction.Body, name, newName);
-        }
-    }
-
-    private void ResolveParameterConflict(Term term, List<string> parameters)
-    {
-        if (term.IsApplication())
-        {
-            foreach (var item in term.Application.Terms)
-            {
-                ResolveParameterConflict(item, parameters);
-            }
-
-            return;
-        }
-
-        if (term.IsAbstraction())
-        {
-            var intersection = parameters.Intersect(term.Abstraction.Parameters).ToList();
-            if (intersection.Count == 0)
-            {
-                ResolveParameterConflict(term.Abstraction.Body, parameters);
-                return;
-            }
-
-            foreach (var paramName in intersection)
-            {
-                term.Abstraction.AlphaReduce(paramName);
-            }
-        }
+        Body = body;
     }
 
     public override string ToString()
