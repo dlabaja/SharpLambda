@@ -8,7 +8,7 @@ public static class Interpreter
     public static Term Eval(string expr, Context context)
     {
         return SharpLambda.Eval.Eval.Evaluate(
-            Parser.Parser.Parse(
-                PreParser.PreParse(expr, context)));
+            Parser.Parser.Parse(PreParser.PreParse(expr, context)),
+            context);
     }
 }
