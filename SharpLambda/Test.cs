@@ -20,7 +20,11 @@ public class Test
         Assert("((λ (x y) (y x)) u)", "(λ (y) (y u))");
         Assert("((λ (x y) (y x)) u v)", "(v u)");
         Assert("((λ (x) (λ (y) (y x))) u v)", "(v u)");
-        Assert("((λ (u v) u) v)", "(λ (a) v)");
+        Assert("((λ (u v) u) v)", "(λ (a) v)"); 
+        Assert("((λ (u v) u) (u v))", "(λ (b) (u v))");
+        Assert("((λ (x y) (x y)) (λ (z) (z z)) u)", "(u u)");
+        Assert("((λ (x y) (y x)) ((λ (z) (z z)) u))", "(λ (y) (y ((λ (z) (z z)) u)))");
+        Assert("((λ (x y) (y x)) ((λ (z) u) v) (λ (x y) (y y)) (λ (z) z))", "(λ (z) z)");
     }
 
     private void Assert(string expr, string result)
