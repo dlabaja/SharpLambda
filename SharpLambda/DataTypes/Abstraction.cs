@@ -34,4 +34,9 @@ public class Abstraction
     {
         return $"(λ ({string.Join(' ', Parameters)}) {Body})";
     }
+    
+    public Abstraction Clone()
+    {
+        return new Abstraction([..Parameters], Body.Clone());
+    }
 }

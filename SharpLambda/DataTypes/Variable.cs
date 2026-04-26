@@ -20,4 +20,9 @@ public class Variable
     {
         return Name;
     }
+
+    public Variable Clone()
+    {
+        return new Variable(Name);
+    }
 }

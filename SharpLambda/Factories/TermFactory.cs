@@ -11,7 +11,7 @@ public static class TermFactory
         {
             throw new AbstractionEmptyException(nameof(Abstraction));
         }
-        return new Term(new Abstraction(parameters, body));
+        return new Term(new Abstraction([..parameters], body));
     }
 
     public static Term Application(List<Term> terms)
@@ -20,7 +20,7 @@ public static class TermFactory
         {
             throw new ApplicationEmptyException(nameof(Application));
         }
-        return new Term(new Application(terms));
+        return new Term(new Application([..terms]));
     }
 
     public static Term Variable(string name)
