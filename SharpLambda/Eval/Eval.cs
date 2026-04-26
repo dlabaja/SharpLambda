@@ -31,9 +31,14 @@ public static class Eval
             return EvaluateExternalFunction(head.External.GetFunction(), args, context);
         }
 
+        if (head.IsApplication())
+        {
+            return Evaluate(TermFactory.Application([Evaluate(head, context), ..args]), context);
+        }
+
         if (head.IsAbstraction())
         {
-            return Evaluate(EvaluateAbstraction(head.Abstraction, args), context);
+            return Evaluate(EvaluateApplication(term), context);
         }
 
         return term;
@@ -64,12 +69,20 @@ public static class Eval
         return head.Function(args);
     }
 
-    private static Term EvaluateAbstraction(Abstraction head, List<Term> args)
+    private static Term EvaluateApplication(Term term)
     {
+        if (!term.IsApplication() || !term.Application.Head.IsAbstraction())
+        {
+            return term;
+        }
+
+        var head = term.Application.Head.Abstraction!;
+        var args = term.Application.Args;
+        
         // checkuju to už nahoře, ale jenom pro jistotu 
         if (args.Count == 0)
         {
-            return TermFactory.Abstraction(head.Parameters, head.Body);
+            return term;
         }
 
         if (head.Parameters.Count == 0)
@@ -80,7 +93,7 @@ public static class Eval
         var arg = args.Car();
         var rest = args.Cdr();
 
-        TryAlphaReduce(TermFactory.Abstraction(head.Parameters, head.Body), arg);
+        TryAlphaReduce(term, arg);
 
         BetaReduce(head, arg);
 
@@ -94,10 +107,9 @@ public static class Eval
             return TermFactory.Application([head.Body, ..rest]);
         }
 
-        var abstraction = TermFactory.Abstraction(head.Parameters, head.Body);
         return rest.Count == 0 
-            ? abstraction
-            : TermFactory.Application([abstraction, ..rest]);
+            ? term.Application.Head
+            : TermFactory.Application([term.Application.Head, ..rest]);
     }
 
     private static void TryAlphaReduce(Term head, Term arg)
@@ -209,7 +221,7 @@ public static class Eval
         {
             if (term.Variable.Name == paramName)
             {
-                return arg;
+                return arg.Clone();
             }
 
             return term;
