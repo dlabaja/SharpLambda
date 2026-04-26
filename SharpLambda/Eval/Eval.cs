@@ -1,4 +1,5 @@
 using SharpLambda.DataTypes;
+using SharpLambda.Exceptions;
 using SharpLambda.Factories;
 using SharpLambda.Utils;
 
@@ -8,27 +9,52 @@ public static class Eval
 {
     public static Term Evaluate(Term term, Context context)
     {
-        if (term.IsApplication())
+        if (!term.IsApplication())
         {
-            var head = term.Application.Head;
-            var args = term.Application.Args;
-            if (args.Count == 0)
-            {
-                return Evaluate(head, context);
-            }
-            
-            if (head.IsExternal() && head.External.IsFunction())
-            {
-                return EvaluateExternalFunction(head.External.GetFunction(), args, context);
-            }
+            return term;
+        }
 
-            if (head.IsAbstraction())
-            {
-                return Evaluate(EvaluateAbstraction(head.Abstraction, args), context);
-            }
+        var head = term.Application.Head;
+        var args = term.Application.Args;
+        if (args.Count == 0)
+        {
+            return Evaluate(head, context);
+        }
+
+        if (head.IsVariable() && head.Variable.Name == "DEFINE")
+        {
+            return EvaluateDefine(term.Application, context);
+        }
+        
+        if (head.IsExternal() && head.External.IsFunction())
+        {
+            return EvaluateExternalFunction(head.External.GetFunction(), args, context);
+        }
+
+        if (head.IsAbstraction())
+        {
+            return Evaluate(EvaluateAbstraction(head.Abstraction, args), context);
         }
 
         return term;
+    }
+
+    private static Term EvaluateDefine(Application application, Context context)
+    {
+        if (application.Args.Count != 2)
+        {
+            throw new ArgCountException("DEFINE", 2, application.Args.Count);
+        }
+
+        var name = application.Args[0];
+        var body = application.Args[1];
+
+        if (!name.IsVariable())
+        {
+            throw new ArgNotVariableException("DEFINE");
+        }
+        context.Add(name.Variable.Name, body);
+        return body;
     }
 
     // externí funkce používají aplikativní vyhodnocování
@@ -66,13 +92,7 @@ public static class Eval
             return TermFactory.Application([abstraction, ..rest]);
         }
 
-        if (head.Parameters.Count == 0)
-        {
-            return head.Body;
-        }
-
-        return abstraction;
-
+        return head.Parameters.Count == 0 ? head.Body : abstraction;
     }
     
     // přejmenuju parametr a pak rekurzivně přejmenuju všechny proměnný v těle

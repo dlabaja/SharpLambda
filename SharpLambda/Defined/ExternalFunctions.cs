@@ -28,13 +28,13 @@ public static class ExternalFunctions
     {
         if (args.Count == 0)
         {
-            throw new ExternalFunctionArgCountException(nameof(Subtract), 1, 0);
+            throw new ArgCountException(nameof(Subtract), 1, 0);
         }
             
         var _args = new List<Term>(args.Cdr());
         _args.Reverse();
         
-        var first = args.Car().External?.GetNumber() ?? throw new ExternalFunctionArgNotNumberException(nameof(Subtract));
+        var first = args.Car().External?.GetNumber() ?? throw new ArgNotNumberException(nameof(Subtract));
         if (_args.Count == 0)
         {
             return TermFactory.Float(-first);
@@ -53,7 +53,7 @@ public static class ExternalFunctions
         {
             if (b == 0)
             {
-                throw new ExternalFunctionDivisionException();
+                throw new DivisionException();
             }
             return a / b;
         }
@@ -62,7 +62,7 @@ public static class ExternalFunctions
         {
             if (b == 0)
             {
-                throw new ExternalFunctionDivisionException();
+                throw new DivisionException();
             }
             return a / b;
         }
@@ -74,7 +74,7 @@ public static class ExternalFunctions
     {
         if (args.Count != 1)
         {
-            throw new ExternalFunctionArgCountException(nameof(Sqrt), 1, args.Count);
+            throw new ArgCountException(nameof(Sqrt), 1, args.Count);
         }
 
         if (FunctionUtils.AllNumber(args))
@@ -82,14 +82,14 @@ public static class ExternalFunctions
             return TermFactory.Float(double.Sqrt(args[0].External!.GetNumber()));
         }
 
-        throw new ExternalFunctionArgNotNumberException(nameof(Sqrt));
+        throw new ArgNotNumberException(nameof(Sqrt));
     }
 
     private static Term Eql(List<Term> args)
     {
         if (args.Count != 2)
         {
-            throw new ExternalFunctionArgCountException(nameof(Eql), 2, args.Count);
+            throw new ArgCountException(nameof(Eql), 2, args.Count);
         }
             
         if (FunctionUtils.AllNumber(args))
@@ -99,14 +99,14 @@ public static class ExternalFunctions
             return Math.Abs(num1 - num2) < 0.001 ? TermFactory.True() : TermFactory.False();
         }
             
-        throw new ExternalFunctionArgNotNumberException(nameof(Eql));
+        throw new ArgNotNumberException(nameof(Eql));
     }
     
     private static Term Gt(List<Term> args)
     {
         if (args.Count != 2)
         {
-            throw new ExternalFunctionArgCountException(nameof(Gt), 2, args.Count);
+            throw new ArgCountException(nameof(Gt), 2, args.Count);
         }
             
         if (FunctionUtils.AllNumber(args))
@@ -116,7 +116,7 @@ public static class ExternalFunctions
             return num1 > num2 ? TermFactory.True() : TermFactory.False();
         }
             
-        throw new ExternalFunctionArgNotNumberException(nameof(Gt));
+        throw new ArgNotNumberException(nameof(Gt));
     }
     
     private static Term NumberFoldr(string funcName, List<Term> args, Func<long, long, long> funcInt, Func<double, double, double> funcFloat, double init)

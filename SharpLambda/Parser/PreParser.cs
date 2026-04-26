@@ -31,9 +31,9 @@ public static class PreParser
     private static string ExpandDefineds(string expr, Context context)
     {
         var builder = new StringBuilder(expr);
-        foreach (var (name, expansion) in context.Defined)
+        foreach (var (name, term) in context.DefinedTerms)
         {
-            builder.Replace(name, expansion);
+            builder.Replace(name, term.ToString());
         }
 
         var result = builder.ToString();
