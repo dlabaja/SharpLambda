@@ -76,7 +76,7 @@ public static class Eval
             return term;
         }
 
-        var head = term.Application.Head.Abstraction!;
+        var head = term.Application.Head;
         var args = term.Application.Args;
         
         // checkuju to už nahoře, ale jenom pro jistotu 
@@ -85,16 +85,18 @@ public static class Eval
             return term;
         }
 
-        if (head.Parameters.Count == 0)
+        if (head.Abstraction.Parameters.Count == 0)
         {
-            return head.Body;
+            return head.Abstraction.Body;
         }
 
         var arg = args.Car();
         var rest = args.Cdr();
 
-        term = TryAlphaReduce(term, arg);
-        return BetaReduce(term, arg);
+        head = TryAlphaReduce(head, arg);
+        head = BetaReduce(head, arg);
+
+        return rest.Count == 0 ? head : TermFactory.Application([head, ..rest]);
     }
 
     private static Term TryAlphaReduce(Term head, Term arg)
@@ -226,12 +228,16 @@ public static class Eval
         var param = abstraction.Abstraction.Parameters.FirstOrDefault();
         if (param == null)
         {
-            return abstraction.Abstraction.Body;
+            return abstraction;
         }
 
         var body = BetaReduceRec(abstraction.Abstraction.Body, arg, param);
-        var abst = TermFactory.Abstraction(abstraction.Abstraction.Parameters.Cdr(), body);
-        return abst.Abstraction!.Parameters.Count == 0 ? body : abst;
+        var args = abstraction.Abstraction.Parameters.Cdr();
+        if (args.Count == 0)
+        {
+            return body;
+        }
+        return TermFactory.Abstraction(args, body);
     }
 
     private static Term BetaReduceRec(Term term, Term arg, string paramName)
