@@ -7,6 +7,48 @@ namespace SharpLambda.Eval;
 
 public static class Eval
 {
+    public static Term EvaluateSteps(Term term, Context context, ref int steps)
+    {
+        if (steps == 0 || !term.IsApplication())
+        {
+            return term;
+        }
+        steps -= 1;
+
+        var head = term.Application.Head;
+        var args = term.Application.Args;
+        if (args.Count == 0)
+        {
+            return EvaluateSteps(head, context, ref steps);
+        }
+
+        if (head.IsVariable() && head.Variable.Name == "DEFINE")
+        {
+            Console.WriteLine($"Evaluating DEFINE {term}");
+            return EvaluateDefine(term.Application, context);
+        }
+        
+        if (head.IsExternal() && head.External.IsFunction())
+        {
+            Console.WriteLine($"Evaluating external function {term}");
+            return EvaluateExternalFunction(head.External.GetFunction(), args, context);
+        }
+
+        if (head.IsApplication())
+        {
+            Console.WriteLine($"Evaluating application {term}");
+            return EvaluateSteps(TermFactory.Application([EvaluateSteps(head, context, ref steps), ..args]), context, ref steps);
+        }
+
+        if (head.IsAbstraction())
+        {
+            Console.WriteLine($"Evaluating abstraction {term}");
+            return EvaluateSteps(EvaluateApplication(term), context, ref steps);
+        }
+
+        return term;
+    }
+    
     public static Term Evaluate(Term term, Context context)
     {
         if (!term.IsApplication())

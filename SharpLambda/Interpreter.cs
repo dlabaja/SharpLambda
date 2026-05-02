@@ -26,6 +26,16 @@ public static class Interpreter
         return term;
     }
     
+    public static Term EvalSteps(string expr, Context context, int steps)
+    {
+        return SharpLambda.Eval.Eval.EvaluateSteps(
+            Expand(
+                Parser.Parser.Parse(
+                    PreParser.PreParse(expr, context)), 
+                context),
+            context, ref steps);
+    }
+    
     public static Term Eval(string expr, Context context)
     {
         return SharpLambda.Eval.Eval.Evaluate(
