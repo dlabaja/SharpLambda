@@ -2,55 +2,28 @@ using SharpLambda.DataTypes;
 using SharpLambda.Exceptions;
 using SharpLambda.Factories;
 using SharpLambda.Utils;
+using System.Diagnostics;
 
 namespace SharpLambda.Eval;
 
 public static class Eval
 {
-    public static Term EvaluateSteps(Term term, Context context, ref int steps)
+    private static Stopwatch _sw = new Stopwatch();
+    
+    public static Term Evaluate(Term term, Context context, ref int steps)
     {
-        if (steps == 0 || !term.IsApplication())
+        if (steps == 0)
         {
-            return term;
-        }
-        steps -= 1;
-
-        var head = term.Application.Head;
-        var args = term.Application.Args;
-        if (args.Count == 0)
-        {
-            return EvaluateSteps(head, context, ref steps);
+            throw new StackOverflowException();
         }
 
-        if (head.IsVariable() && head.Variable.Name == "DEFINE")
+        steps--;
+        if (steps % 1000 == 0)
         {
-            Console.WriteLine($"Evaluating DEFINE {term}");
-            return EvaluateDefine(term.Application, context);
+            Console.WriteLine($"{steps}, {_sw.ElapsedMilliseconds}");
+            _sw.Restart();
         }
         
-        if (head.IsExternal() && head.External.IsFunction())
-        {
-            Console.WriteLine($"Evaluating external function {term}");
-            return EvaluateExternalFunction(head.External.GetFunction(), args, context);
-        }
-
-        if (head.IsApplication())
-        {
-            Console.WriteLine($"Evaluating application {term}");
-            return EvaluateSteps(TermFactory.Application([EvaluateSteps(head, context, ref steps), ..args]), context, ref steps);
-        }
-
-        if (head.IsAbstraction())
-        {
-            Console.WriteLine($"Evaluating abstraction {term}");
-            return EvaluateSteps(EvaluateApplication(term), context, ref steps);
-        }
-
-        return term;
-    }
-    
-    public static Term Evaluate(Term term, Context context)
-    {
         if (!term.IsApplication())
         {
             return term;
@@ -60,7 +33,7 @@ public static class Eval
         var args = term.Application.Args;
         if (args.Count == 0)
         {
-            return Evaluate(head, context);
+            return Evaluate(head, context, ref steps);
         }
 
         if (head.IsVariable() && head.Variable.Name == "DEFINE")
@@ -75,12 +48,12 @@ public static class Eval
 
         if (head.IsApplication())
         {
-            return Evaluate(TermFactory.Application([Evaluate(head, context), ..args]), context);
+            return Evaluate(TermFactory.Application([Evaluate(head, context, ref steps), ..args]), context, ref steps);
         }
 
         if (head.IsAbstraction())
         {
-            return Evaluate(EvaluateApplication(term), context);
+            return Evaluate(EvaluateApplication(term), context, ref steps);
         }
 
         return term;
@@ -107,7 +80,8 @@ public static class Eval
     // externí funkce používají aplikativní vyhodnocování
     private static Term EvaluateExternalFunction(ExternalFunction head, List<Term> args, Context context)
     {
-        args = args.Select(x => Evaluate(x, context)).ToList();
+        int steps = 100;
+        args = args.Select(x => Evaluate(x, context, ref steps)).ToList();
         return head.Function(args);
     }
 
@@ -148,15 +122,10 @@ public static class Eval
         var paramNames = new List<string>();
         CollectVariableNames(head, [], paramNames);
         CollectVariableNames(arg, freeVarNames, []);
-        var paramsToRename = paramNames.Intersect(freeVarNames).ToList();
+        var paramsToRename = paramNames.Intersect(freeVarNames);
 
-        var term = head;
         // pokud je někdy konflikt (freeVar == paramName), udělám na hlavě alpha redukci (přejmenuju výskyty paramName)
-        foreach (var param in paramsToRename)
-        {
-            term = AlphaReduce(term, param);
-        }
-        return term;
+        return paramsToRename.Aggregate(head, AlphaReduce);
     }
     
     // přejmenuju parametr a pak rekurzivně přejmenuju všechny proměnný v těle

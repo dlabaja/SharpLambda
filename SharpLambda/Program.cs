@@ -8,6 +8,9 @@ internal static class Program
     
     public static void Main(string[] args)
     {
+        // testování -> pusťte v Debug modu tuhle metodu, pokud se debugger na něčem zasekne tak je někde chyba
+        // new Test().TestInterpreter();
+        
         Eval("(define true (λ (a b) a))");
         Eval("(define false (λ (a b) b))");
         Eval("(define if (λ (p c a) (p c a)))");
@@ -24,7 +27,8 @@ internal static class Program
         Eval("(define zero? car)");
         Eval("(define i+% (λ (f a b) (if (zero? b) a (f f (succ a) (pred b)))))");
         Eval("(define i+ (λ (a b) (i+% i+% a b)))");
-        Eval("(i+ one one)");
+        Eval("(i+ zero one)");
+        Console.WriteLine("konec");
     }
 
     private static void Eval(string expr)
@@ -32,6 +36,3 @@ internal static class Program
         Console.WriteLine(Interpreter.Eval(expr, _context));
     }
 }
-
-// testování -> pusťte v Debug modu tuhle metodu, pokud se debugger na něčem zasekne tak se něco vyhodnocuje špatně
-// new Test().TestInterpreter();
