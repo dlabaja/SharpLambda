@@ -27,29 +27,10 @@ public static class PreParser
 
         return new string(expr);
     }
-
-    private static string ExpandDefineds(string expr, Context context)
-    {
-        var builder = new StringBuilder(expr);
-        foreach (var (name, term) in context.DefinedTerms)
-        {
-            builder.Replace(name, term.ToString());
-        }
-
-        var result = builder.ToString();
-        if (expr == result)
-        {
-            return result;
-        }
-
-        return ExpandDefineds(result, context);
-    }
     
     public static string PreParse(string expr, Context context)
     {
-        var new_exp = ExpandDefineds(
-            ExpressionToUpper(expr.Trim().ToCharArray()),
-            context);
+        var new_exp = ExpressionToUpper(expr.Trim().ToCharArray());
         var builder = new StringBuilder(new_exp);
         builder.Replace("LAMBDA", "λ");
         builder.Replace("Λ", "λ");

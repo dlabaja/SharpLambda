@@ -6,9 +6,10 @@ public class Context
 
     public void Add(string name, Term body)
     {
-        if (!DefinedTerms.TryAdd(name, body))
+        var _name = name.ToUpper();
+        if (!DefinedTerms.TryAdd(_name, body))
         {
-            DefinedTerms[name] = body;
+            DefinedTerms[_name] = body;
         }
     }
 }
