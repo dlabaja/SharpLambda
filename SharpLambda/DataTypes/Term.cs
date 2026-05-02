@@ -91,31 +91,6 @@ public class Term
 
         return "";
     }
-    
-    public Term Clone()
-    {
-        if (IsVariable())
-        {
-            return new Term(Variable.Clone());
-        }
-
-        if (IsAbstraction())
-        {
-            return new Term(Abstraction.Clone());
-        }
-
-        if (IsApplication())
-        {
-            return new Term(Application.Clone());
-        }
-
-        if (IsExternal())
-        {
-            return new Term(External);
-        }
-
-        return this;
-    }
 
     public static bool Equals(Term t1, Term t2)
     {

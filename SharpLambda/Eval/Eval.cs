@@ -59,7 +59,7 @@ public static class Eval
             throw new ArgNotVariableException("DEFINE");
         }
         context.Add(name.Variable.Name, body);
-        return body;
+        return TermFactory.String($"#DEFINED {name}#");
     }
 
     // externí funkce používají aplikativní vyhodnocování
@@ -93,92 +93,102 @@ public static class Eval
         var arg = args.Car();
         var rest = args.Cdr();
 
-        TryAlphaReduce(term, arg);
-
-        BetaReduce(head, arg);
-
-        if (head.Parameters.Count == 0)
-        {
-            if (rest.Count == 0)
-            {
-                return head.Body;
-            }
-
-            return TermFactory.Application([head.Body, ..rest]);
-        }
-
-        return rest.Count == 0 
-            ? term.Application.Head
-            : TermFactory.Application([term.Application.Head, ..rest]);
+        term = TryAlphaReduce(term, arg);
+        return BetaReduce(term, arg);
     }
 
-    private static void TryAlphaReduce(Term head, Term arg)
+    private static Term TryAlphaReduce(Term head, Term arg)
     {
         // u arg potřebuju freeVars, u head paramNames
         var freeVarNames = new List<string>();
-        var paramNames = new Dictionary<string, Abstraction>();
+        var paramNames = new List<string>();
         CollectVariableNames(head, [], paramNames);
         CollectVariableNames(arg, freeVarNames, []);
-        
-        // pokud je některá z volných proměnných v seznamu parametrů, musím ji zredukovat
-        foreach (var freeVarName in freeVarNames)
+        var paramsToRename = paramNames.Intersect(freeVarNames).ToList();
+
+        var term = head;
+        // pokud je někdy konflikt (freeVar == paramName), udělám na hlavě alpha redukci (přejmenuju výskyty paramName)
+        foreach (var param in paramsToRename)
         {
-            if (paramNames.TryGetValue(freeVarName, out var abstraction))
-            {
-                AlphaReduce(abstraction, freeVarName);       
-            }
+            term = AlphaReduce(term, param);
         }
+        return term;
     }
     
     // přejmenuju parametr a pak rekurzivně přejmenuju všechny proměnný v těle
-    private static void AlphaReduce(Abstraction abstraction, string name)
+    private static Term AlphaReduce(Term abstraction, string name)
     {
-        var paramIndex = abstraction.Parameters.IndexOf(name);
+        if (!abstraction.IsAbstraction())
+        {
+            return abstraction;
+        }
+        
+        var paramIndex = abstraction.Abstraction.Parameters.IndexOf(name);
         if (paramIndex == -1)
         {
-            return;
+            return abstraction;
         }
 
-        var newName = NameGenerator.GetName();
-        abstraction.Parameters[paramIndex] = newName;
-        AlphaReduceRec(abstraction.Body, name, newName);
+        var paramFound = false;
+        return AlphaReduceRec(abstraction, name, NameGenerator.GetName(), ref paramFound);
     }
 
     // rekurze my beloved
-    private static void AlphaReduceRec(Term term, string name, string newName)
+    // paramFound -> pokud je true, rekurze se zastaví v lambdě co obsahuje stejně pojmenovanej parametr, 
+    private static Term AlphaReduceRec(Term term, string name, string newName, ref bool paramFound)
     {
         if (term.IsVariable() && term.Variable.Name == name)
         {
-            term.Variable.Rename(newName);
-            return;
+            return TermFactory.Variable(newName);
         }
 
         if (term.IsApplication())
         {
-            ListUtils.Mapcar(term.Application.Terms, x =>
+            var newTerms = new List<Term>();
+
+            // kvůli ref nemůžu použít linq
+            foreach (var x in term.Application.Terms)
             {
-                AlphaReduceRec(x, name, newName);
-                return x;
-            });
-            return;
+                newTerms.Add(AlphaReduceRec(x, name, newName, ref paramFound));
+            }
+
+            return TermFactory.Application(newTerms);
         }
 
-        if (term.IsAbstraction())
+        // external nebo nezajímavá proměnná
+        if (!term.IsAbstraction())
         {
-            // tady končí scope
-            if (term.Abstraction.Parameters.Contains(name))
-            {
-                return;
-            }
-            AlphaReduceRec(term.Abstraction.Body, name, newName);
+            return term;
         }
+
+        // abstrakce
+        var containsParamWithName = term.Abstraction.Parameters.Contains(name);
+        if (containsParamWithName)
+        {
+            if (paramFound)
+            {
+                return term; // jsem mimo scope a svůj už jsem prošel
+            }
+
+            // jdu poprvé do svého scopu
+            paramFound = true;
+            return TermFactory.Abstraction(
+                term.Abstraction.Parameters.ReplaceImut(name, newName), 
+                AlphaReduceRec(term.Abstraction.Body, name, newName, ref paramFound));
+        }
+            
+        // normální abstrakce, jdu dovnitř
+        return TermFactory.Abstraction(
+            term.Abstraction.Parameters, 
+            AlphaReduceRec(term.Abstraction.Body, name, newName, ref paramFound));
+
     }
 
-    private static void CollectVariableNames(Term term, List<string> freeVariableNames, Dictionary<string, Abstraction> paramNames)
+    private static void CollectVariableNames(Term term, List<string> freeVariableNames, List<string> paramNames)
     {
         if (term.IsVariable())
         {
-            if (freeVariableNames.Contains(term.Variable.Name) || paramNames.ContainsKey(term.Variable.Name))
+            if (freeVariableNames.Contains(term.Variable.Name) || paramNames.Contains(term.Variable.Name))
             {
                 return;
             }
@@ -187,32 +197,41 @@ public static class Eval
         
         if (term.IsApplication())
         {
-            ListUtils.Mapcar(term.Application.Terms, x =>
+            foreach (var x in term.Application.Terms)
             {
                 CollectVariableNames(x, freeVariableNames, paramNames);
-                return x;
-            });
+            }
         }
 
         if (term.IsAbstraction())
         {
             foreach (var parameter in term.Abstraction.Parameters)
             {
-                paramNames.TryAdd(parameter, term.Abstraction);
+                if (!paramNames.Contains(parameter))
+                {
+                    paramNames.Add(parameter);
+                }
             }
             CollectVariableNames(term.Abstraction.Body, freeVariableNames, paramNames);
         }
     }
     
-    private static void BetaReduce(Abstraction abstraction, Term arg)
+    private static Term BetaReduce(Term abstraction, Term arg)
     {
-        var param = abstraction.PopFirstParam();
+        if (!abstraction.IsAbstraction())
+        {
+            return abstraction;
+        }
+        
+        var param = abstraction.Abstraction.Parameters.FirstOrDefault();
         if (param == null)
         {
-            return;
+            return abstraction.Abstraction.Body;
         }
 
-        abstraction.ReplaceBody(BetaReduceRec(abstraction.Body, arg, param));
+        var body = BetaReduceRec(abstraction.Abstraction.Body, arg, param);
+        var abst = TermFactory.Abstraction(abstraction.Abstraction.Parameters.Cdr(), body);
+        return abst.Abstraction!.Parameters.Count == 0 ? body : abst;
     }
 
     private static Term BetaReduceRec(Term term, Term arg, string paramName)
@@ -221,7 +240,7 @@ public static class Eval
         {
             if (term.Variable.Name == paramName)
             {
-                return arg.Clone();
+                return arg;
             }
 
             return term;
@@ -240,7 +259,8 @@ public static class Eval
             {
                 return term;
             }
-            term.Abstraction.ReplaceBody(BetaReduceRec(term.Abstraction.Body, arg, paramName));
+
+            return TermFactory.Abstraction(term.Abstraction.Parameters, BetaReduceRec(term.Abstraction.Body, arg, paramName));
         }
 
         return term;

@@ -24,9 +24,4 @@ public class Application
     {
         return $"({string.Join(' ', Terms)})";
     }
-    
-    public Application Clone()
-    {
-        return new Application([..Terms]);
-    }
 }

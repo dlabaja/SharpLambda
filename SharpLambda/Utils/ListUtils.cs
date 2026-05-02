@@ -26,4 +26,17 @@ public static class ListUtils
     {
         return list.Select(func).ToList();
     }
+
+    public static List<T> ReplaceImut<T>(this List<T> list, T elem, T newElem)
+    {
+        var index = list.IndexOf(elem);
+        if (index == -1)
+        {
+            return list;
+        }
+
+        var newList = list.ToList();
+        newList[index] = newElem;
+        return newList;
+    }
 }
